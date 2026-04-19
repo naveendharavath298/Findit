@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% set page = "report-lost" %}
+{% block title %}Report Lost Item — FindIt{% endblock %}
+{% block content %}
+<div class="page-hero page-hero-danger">
+  <div class="container">
+    <h1><i class="fas fa-exclamation-triangle"></i> Report Lost Item</h1>
+    <p>The more detail you provide, the better our matching system works.</p>
+  </div>
+</div>
+
+<section class="form-section">
+  <div class="container">
+    <div class="auth-gate" id="lostAuthGate">
+      <div class="auth-gate-inner">
+        <i class="fas fa-lock"></i>
+        <h3>Sign in to report a lost item</h3>
+        <p>Create a free account or sign in to submit your report and get notified of matches.</p>
+        <div class="auth-gate-btns">
+          <button class="btn btn-primary" onclick="openModal('otpModal')"><i class="fas fa-mobile-alt"></i> Login with OTP</button>
+          <button class="btn btn-outline" onclick="openModal('loginModal')"><i class="fas fa-sign-in-alt"></i> Sign In</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-card" id="lostFormCard" style="display:none">
+      <div class="form-card-hdr">
+        <div class="form-card-icon danger"><i class="fas fa-exclamation-triangle"></i></div>
+        <div>
+          <h2>Report Lost Item</h2>
+          <p>Fill in as many details as possible to improve match accuracy.</p>
+        </div>
+      </div>
+
+      <form id="lostForm" onsubmit="submitLostReport(event)">
+        <div class="form-grid">
+          <div class="form-group">
+            <label><i class="fas fa-tag"></i> Item Name *</label>
+            <input type="text" id="lostTitle" required placeholder="e.g. iPhone 13 Pro, Black Wallet, Gold Ring">
+          </div>
+          <div class="form-group">
+            <label><i class="fas fa-list"></i> Category *</label>
+            <select id="lostCategory" required>
+              <option value="">Select Category</option>
+              <option value="electronics">Electronics</option>
+              <option value="documents">Documents & IDs</option>
+              <option value="accessories">Accessories</option>
+              <option value="clothing">Clothing</option>
+              <option value="jewelry">Jewelry</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label><i class="fas fa-calendar"></i> Date Lost *</label>
+            <input type="date" id="lostDate" required>
+          </div>
+          <div class="form-group">
+            <label><i class="fas fa-map-marker-alt"></i> Location *</label>
+            <input type="text" id="lostLocation" required placeholder="Where did you lose it?">
+          </div>
+          <div class="form-group full">
+            <label><i class="fas fa-align-left"></i> Description *</label>
+            <textarea id="lostDesc" rows="4" required placeholder="Colour, brand, model, size, distinguishing features, what's inside…"></textarea>
+          </div>
+          <div class="form-group full">
+            <label>
+              <i class="fas fa-fingerprint"></i> Unique Identifier
+              <span class="label-badge">For verification</span>
+            </label>
+            <input type="text" id="lostUID" placeholder="Serial number, IMEI, receipt number, engraving…">
+            <small class="form-hint">This secret is used to verify ownership when a match is found. Keep it safe.</small>
+          </div>
+          <div class="form-group">
+            <label><i class="fas fa-envelope"></i> Contact Email *</label>
+            <input type="email" id="lostEmail" required placeholder="your@email.com">
+          </div>
+          <div class="form-group">
+            <label><i class="fas fa-phone"></i> Contact Phone</label>
+            <input type="tel" id="lostPhone" placeholder="+91 98765 43210">
+          </div>
+          <div class="form-group">
+            <label><i class="fas fa-gift"></i> Reward Offered</label>
+            <input type="text" id="lostReward" placeholder="e.g. ₹5,000">
+          </div>
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="lostHV">
+              <span><i class="fas fa-star"></i> High Value Item</span>
+            </label>
+          </div>
+        </div>
+        <div class="form-footer">
+          <button type="button" class="btn btn-ghost" onclick="$('lostForm').reset(); setTodayDate()">
+            <i class="fas fa-redo"></i> Reset
+          </button>
+          <button type="submit" class="btn btn-primary btn-lg" id="lostSubmitBtn">
+            <i class="fas fa-paper-plane"></i> Submit Lost Report
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  setTodayDate();
+  checkFormAuth();
+});
+
+function setTodayDate() {
+  const d = document.getElementById('lostDate');
+  if (d) d.value = new Date().toISOString().split('T')[0];
+}
+
+function checkFormAuth() {
+  if (AppState.user) {
+    $('lostAuthGate').style.display  = 'none';
+    $('lostFormCard').style.display  = '';
+    const e = $('lostEmail'), p = $('lostPhone');
+    if (e && AppState.user.email) e.value = AppState.user.email;
+    if (p && AppState.user.phone) p.value = AppState.user.phone;
+  } else {
+    $('lostAuthGate').style.display  = '';
+    $('lostFormCard').style.display  = 'none';
+  }
+}
+
+// Called by app.js after login
+window._onAuthChange = checkFormAuth;
+
+async function submitLostReport(e) {
+  e.preventDefault();
+  if (!requireAuth('report a lost item')) return;
+
+  const title = ($('lostTitle').value || '').trim();
+  const cat   = $('lostCategory').value || '';
+  const desc  = ($('lostDesc').value   || '').trim();
+  const loc   = ($('lostLocation').value || '').trim();
+  const date  = $('lostDate').value || '';
+
+  if (!title || !cat || !desc || !loc || !date) {
+    return showToast('Please fill in all required fields.', 'error');
+  }
+
+  setBusy('lostSubmitBtn', true);
+  try {
+    const result = await api('POST', '/api/reports', {
+      report_type: 'lost', title, category: cat, description: desc,
+      location_label: loc, event_time: date,
+      unique_identifiers: ($('lostUID').value || '').trim(),
+      contact_email:      ($('lostEmail').value || '').trim(),
+      contact_phone:      ($('lostPhone').value || '').trim(),
+      reward:             ($('lostReward').value || '').trim(),
+      is_high_value:       $('lostHV').checked,
+    });
+    showToast('Lost item reported! We\'ll notify you of any matches.', 'success');
+    $('lostForm').reset();
+    setTodayDate();
+    if (result.claim_token) {
+      $('tokenDisplay').textContent = result.claim_token;
+      openModal('tokenModal');
+    }
+    setTimeout(() => window.location.href = '/browse', 2000);
+  } catch(err) { showToast(err.message, 'error'); }
+  finally { setBusy('lostSubmitBtn', false); }
+}
+</script>
+{% endblock %}

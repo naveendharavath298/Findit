@@ -1,0 +1,148 @@
+<!-- browse.html -->
+{% extends "base.html" %}
+{% set page = "browse" %}
+{% block title %}Browse Items — FindIt{% endblock %}
+{% block content %}
+<div class="page-hero page-hero-sm">
+  <div class="container">
+    <h1><i class="fas fa-th-large"></i> Browse Items</h1>
+    <p>Search through all reported lost and found items</p>
+  </div>
+</div>
+
+<section class="browse-section">
+  <div class="container">
+    <!-- Search & Filters -->
+    <div class="filter-bar">
+      <div class="search-wrap">
+        <i class="fas fa-search"></i>
+        <input type="text" id="browseSearch" placeholder="Search by name, location, category…" oninput="debounceBrowse()">
+      </div>
+      <div class="filter-group">
+        <select id="browseType" onchange="loadBrowse()">
+          <option value="">All Types</option>
+          <option value="lost">Lost Items</option>
+          <option value="found">Found Items</option>
+        </select>
+        <select id="browseCategory" onchange="loadBrowse()">
+          <option value="">All Categories</option>
+        </select>
+        <button class="btn btn-primary" onclick="loadBrowse()">
+          <i class="fas fa-search"></i> Search
+        </button>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div class="results-meta" id="resultsMeta" style="display:none">
+      <span id="resultsCount">0 items</span>
+      <button class="clear-search" onclick="clearSearch()">
+        <i class="fas fa-times"></i> Clear
+      </button>
+    </div>
+
+    <div class="items-grid" id="browseGrid">
+      <div class="loading-state"><i class="fas fa-spinner fa-spin"></i><p>Loading…</p></div>
+    </div>
+
+    <div class="load-more-wrap" id="loadMoreWrap" style="display:none">
+      <button class="btn btn-outline" onclick="loadMoreBrowse()">
+        <i class="fas fa-plus"></i> Load More
+      </button>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let browseAll = [], browsePage = 1, browsePerPage = 9;
+let browseTimer;
+
+document.addEventListener('DOMContentLoaded', async () => {
+  // Load categories into select
+  try {
+    const cats = await api('GET', '/api/categories');
+    const sel = $('browseCategory');
+    cats.forEach(c => { sel.innerHTML += `<option value="${c.id}">${c.name}</option>`; });
+  } catch(_) {}
+
+  // Check ?mine=1
+  const params = new URLSearchParams(location.search);
+  if (params.get('mine') === '1' && AppState.user) {
+    loadMyItems();
+  } else {
+    loadBrowse();
+  }
+});
+
+function debounceBrowse() {
+  clearTimeout(browseTimer);
+  browseTimer = setTimeout(loadBrowse, 350);
+}
+
+async function loadBrowse() {
+  const q    = ($('browseSearch').value || '').trim();
+  const type = $('browseType').value || '';
+  const cat  = $('browseCategory').value || '';
+  const params = new URLSearchParams();
+  if (q)    params.set('q', q);
+  if (type) params.set('type', type);
+  if (cat)  params.set('category', cat);
+
+  $('browseGrid').innerHTML = `<div class="loading-state"><i class="fas fa-spinner fa-spin"></i><p>Loading…</p></div>`;
+
+  try {
+    browseAll = await api('GET', '/api/reports/all?' + params.toString());
+    browsePage = 1;
+    renderBrowseGrid();
+    const meta = $('resultsMeta');
+    if (q || type || cat) {
+      $('resultsCount').textContent = browseAll.length + ' item' + (browseAll.length !== 1 ? 's' : '') + ' found';
+      meta.style.display = 'flex';
+    } else { meta.style.display = 'none'; }
+  } catch(e) {
+    $('browseGrid').innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-circle"></i><h3>Could not load items</h3></div>`;
+  }
+}
+
+async function loadMyItems() {
+  if (!AppState.user) return loadBrowse();
+  $('browseGrid').innerHTML = `<div class="loading-state"><i class="fas fa-spinner fa-spin"></i><p>Loading your reports…</p></div>`;
+  try {
+    browseAll = await api('GET', '/api/reports');
+    browsePage = 1;
+    renderBrowseGrid();
+    $('resultsMeta').style.display = 'flex';
+    $('resultsCount').textContent = 'My reports (' + browseAll.length + ')';
+  } catch(e) { loadBrowse(); }
+}
+
+function renderBrowseGrid() {
+  const grid  = $('browseGrid');
+  const items = browseAll.slice(0, browsePage * browsePerPage);
+  if (!items.length) {
+    grid.innerHTML = `<div class="empty-state">
+      <i class="fas fa-box-open"></i><h3>No items found</h3>
+      <p>Try different search terms or <a href="/report-lost">report your lost item</a>.</p>
+    </div>`;
+    $('loadMoreWrap').style.display = 'none';
+    return;
+  }
+  grid.innerHTML = items.map(makeCard).join('');
+  $('loadMoreWrap').style.display = browseAll.length > items.length ? 'block' : 'none';
+}
+
+function loadMoreBrowse() {
+  browsePage++;
+  renderBrowseGrid();
+}
+
+function clearSearch() {
+  $('browseSearch').value = '';
+  $('browseType').value = '';
+  $('browseCategory').value = '';
+  loadBrowse();
+}
+</script>
+{% endblock %}

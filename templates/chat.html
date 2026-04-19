@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% set page = "chat" %}
+{% block title %}Secure Chat — FindIt{% endblock %}
+{% block content %}
+<div class="page-hero page-hero-dark">
+  <div class="container">
+    <h1><i class="fas fa-comments"></i> Secure Chat</h1>
+    <p>Anonymous, encrypted messaging between verified match participants.</p>
+  </div>
+</div>
+<section class="chat-section">
+  <div class="container">
+    <div class="auth-gate" id="chatAuthGate">
+      <div class="auth-gate-inner">
+        <i class="fas fa-comments"></i>
+        <h3>Sign in to use chat</h3>
+        <p>Chat is available after a match is verified. Communicate securely using aliases.</p>
+        <div class="auth-gate-btns">
+          <button class="btn btn-primary" onclick="openModal('otpModal')"><i class="fas fa-mobile-alt"></i> Login with OTP</button>
+          <button class="btn btn-outline"  onclick="openModal('loginModal')"><i class="fas fa-sign-in-alt"></i> Sign In</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="chat-layout" id="chatArea" style="display:none">
+      <div class="chat-sidebar">
+        <div class="chat-sb-title"><i class="fas fa-comments"></i> Conversations</div>
+        <div id="chatSessionList"><div class="chat-empty-sb">No active chats</div></div>
+      </div>
+      <div class="chat-main" id="chatMain">
+        <div class="chat-placeholder">
+          <i class="fas fa-comments"></i>
+          <p>Select a conversation from the left to start chatting</p>
+          <small>All messages use anonymous aliases for privacy</small>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let activeChatId = null, chatPoll = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+  if (AppState.user) initChat(); else window._onAuthChange = initChat;
+});
+window._onAuthChange = () => { if(AppState.user) initChat(); };
+
+async function initChat() {
+  $('chatAuthGate').style.display = 'none';
+  $('chatArea').style.display     = '';
+  await loadSessions();
+
+  // If came from matches page
+  const pending = sessionStorage.getItem('pendingChatMatch');
+  if (pending) {
+    sessionStorage.removeItem('pendingChatMatch');
+    try {
+      const sess = await api('POST','/api/chat/sessions',{match_id: pending});
+      await loadSessions();
+      openChatSession(sess.id, sess.item_title || 'Chat');
+    } catch(e) { showToast(e.message,'error'); }
+  }
+}
+
+async function loadSessions() {
+  try {
+    const sessions = await api('GET','/api/chat/sessions');
+    renderSessions(sessions);
+  } catch(_) {}
+}
+
+function renderSessions(sessions) {
+  const el = $('chatSessionList');
+  if (!sessions.length) {
+    el.innerHTML = '<div class="chat-empty-sb">No verified matches yet.<br><a href="/matches">View Matches</a></div>';
+    return;
+  }
+  el.innerHTML = sessions.map(s=>`
+    <div class="chat-sess-item${activeChatId===s.id?' active':''}" onclick="openChatSession('${s.id}','${esc(s.item_title||'Chat')}')">
+      <div class="csi-title">${esc(s.item_title||'Chat')}</div>
+      <div class="csi-sub">${esc(s.owner_alias)} &amp; ${esc(s.finder_alias)}</div>
+    </div>`).join('');
+}
+
+async function openChatSession(sessId, title) {
+  activeChatId = sessId;
+  if(chatPoll) { clearInterval(chatPoll); chatPoll=null; }
+
+  document.querySelectorAll('.chat-sess-item').forEach(el=>el.classList.remove('active'));
+  const active = document.querySelector(`.chat-sess-item[onclick*="${sessId}"]`);
+  if (active) active.classList.add('active');
+
+  $('chatMain').innerHTML = `
+    <div class="chat-thread-hdr">
+      <div><div class="ct-title">${esc(title)}</div>
+           <div class="ct-sub"><i class="fas fa-lock"></i> End-to-end secured · aliases protect your identity</div>
+      </div>
+    </div>
+    <div class="chat-msgs" id="chatMsgs"></div>
+    <div class="chat-input-row">
+      <input type="text" id="chatInput" placeholder="Type a message…" onkeydown="if(event.key==='Enter')sendChatMsg()">
+      <button class="btn btn-primary" onclick="sendChatMsg()"><i class="fas fa-paper-plane"></i></button>
+    </div>`;
+
+  await fetchAndRenderMsgs(sessId);
+  chatPoll = setInterval(()=>fetchAndRenderMsgs(sessId), 3000);
+}
+
+async function fetchAndRenderMsgs(sessId) {
+  try {
+    const msgs = await api('GET',`/api/chat/sessions/${sessId}/messages`);
+    renderMsgs(msgs);
+  } catch(_) {}
+}
+
+function renderMsgs(msgs) {
+  const el = $('chatMsgs'); if(!el) return;
+  const atBottom = el.scrollHeight - el.scrollTop <= el.clientHeight + 60;
+  if (!msgs.length) { el.innerHTML='<div class="chat-no-msgs">No messages yet. Say hello!</div>'; return; }
+  el.innerHTML = msgs.map(m=>{
+    const mine = m.sender_id === AppState.user?.id;
+    return `<div class="bubble-wrap ${mine?'mine':'theirs'}">
+      <div class="bubble ${mine?'mine':'theirs'}">${esc(m.content)}</div>
+      <div class="bub-meta">${mine?'You':esc(m.sender_name)} · ${fmtTime(m.sent_at)}</div>
+    </div>`;
+  }).join('');
+  if (atBottom) el.scrollTop = el.scrollHeight;
+}
+
+async function sendChatMsg() {
+  const input = $('chatInput');
+  const content = (input?.value||'').trim();
+  if (!content || !activeChatId) return;
+  input.value = '';
+  try {
+    await api('POST',`/api/chat/sessions/${activeChatId}/messages`,{content});
+    await fetchAndRenderMsgs(activeChatId);
+  } catch(e) { showToast(e.message,'error'); input.value=content; }
+}
+</script>
+{% endblock %}

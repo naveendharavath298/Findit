@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% set page = "matches" %}
+{% block title %}Matches — FindIt{% endblock %}
+{% block content %}
+<div class="page-hero page-hero-purple">
+  <div class="container">
+    <h1><i class="fas fa-link"></i> My Matches</h1>
+    <p>Items automatically matched by our AI — verify ownership and start chatting.</p>
+  </div>
+</div>
+
+<section class="form-section">
+  <div class="container">
+    <div class="auth-gate" id="matchAuthGate">
+      <div class="auth-gate-inner">
+        <i class="fas fa-link"></i>
+        <h3>Sign in to see your matches</h3>
+        <p>After you report a lost or found item, matches appear here automatically.</p>
+        <div class="auth-gate-btns">
+          <button class="btn btn-primary" onclick="openModal('otpModal')"><i class="fas fa-mobile-alt"></i> Login with OTP</button>
+          <button class="btn btn-outline"  onclick="openModal('loginModal')"><i class="fas fa-sign-in-alt"></i> Sign In</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="matchesArea" style="display:none">
+      <div class="matches-stats" id="matchesStats"></div>
+      <div id="matchesList"><div class="loading-state"><i class="fas fa-spinner fa-spin"></i><p>Loading matches…</p></div></div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  if (AppState.user) showMatches(); else window._onAuthChange = showMatches;
+});
+
+function showMatches() {
+  if (!AppState.user) return;
+  $('matchAuthGate').style.display = 'none';
+  $('matchesArea').style.display   = '';
+  loadPageMatches();
+}
+
+window._onAuthChange = showMatches;
+
+async function loadPageMatches() {
+  try {
+    const matches = await api('GET', '/api/matches');
+    renderMatchList(matches);
+    const notified = matches.filter(m=>m.match_status==='notified').length;
+    const verified = matches.filter(m=>m.match_status==='verified').length;
+    $('matchesStats').innerHTML = `
+      <div class="match-stat"><span class="ms-num">${matches.length}</span><span class="ms-lbl">Total Matches</span></div>
+      <div class="match-stat warn"><span class="ms-num">${notified}</span><span class="ms-lbl">Awaiting Verification</span></div>
+      <div class="match-stat ok"><span class="ms-num">${verified}</span><span class="ms-lbl">Verified</span></div>`;
+  } catch(e) { showToast(e.message,'error'); }
+}
+
+function renderMatchList(matches) {
+  const el = $('matchesList');
+  if (!matches.length) {
+    el.innerHTML = `<div class="empty-state">
+      <i class="fas fa-search"></i><h3>No matches yet</h3>
+      <p>Matches appear automatically when the system finds related lost/found reports.</p>
+      <div style="display:flex;gap:1rem;justify-content:center;margin-top:1.5rem">
+        <a href="/report-lost"  class="btn btn-primary"><i class="fas fa-exclamation-triangle"></i> Report Lost</a>
+        <a href="/report-found" class="btn btn-outline"><i class="fas fa-gift"></i> Report Found</a>
+      </div>
+    </div>`;
+    return;
+  }
+  el.innerHTML = matches.map(m => {
+    const pct   = Math.round((parseFloat(m.confidence_score)||0)*100);
+    const color = pct>=70?'#10b981':pct>=40?'#f59e0b':'#ef4444';
+    const sigs  = (m.match_signals||[]).map(s=>`<span class="sig-pill">${s.replace('_',' ')}</span>`).join('');
+    const isOwner  = m.owner_id  === AppState.user?.id;
+    const isFinder = m.finder_id === AppState.user?.id;
+    const actions = m.match_status==='notified'
+      ? `<button class="btn btn-primary btn-sm" onclick="startVerify('${m.id}')"><i class="fas fa-fingerprint"></i> Verify Ownership</button>`
+      : m.match_status==='verified'
+        ? `<a href="/chat" class="btn btn-success btn-sm" onclick="setChatMatch('${m.id}')"><i class="fas fa-comments"></i> Open Chat</a>`
+        : `<span class="badge badge-muted">${m.match_status.replace('_',' ')}</span>`;
+    return `<div class="match-card">
+      <div class="match-header">
+        <span class="badge badge-${m.match_status}">${m.match_status.replace('_',' ')}</span>
+        <span class="match-date">${timeAgo(m.matched_at)}</span>
+      </div>
+      <div class="match-body">
+        <div class="match-item lost-side">
+          <div class="mi-label"><i class="fas fa-search" style="color:#ef4444"></i> Lost</div>
+          <div class="mi-title">${esc(m.lost_title)}</div>
+          ${isOwner?'<span class="mi-you">← Your item</span>':''}
+        </div>
+        <div class="match-center">
+          <div class="conf-ring" style="--pct:${pct};--clr:${color}">
+            <span class="conf-num">${pct}%</span>
+          </div>
+          <div class="match-sigs">${sigs}</div>
+        </div>
+        <div class="match-item found-side">
+          <div class="mi-label"><i class="fas fa-gift" style="color:#10b981"></i> Found</div>
+          <div class="mi-title">${esc(m.found_title)}</div>
+          ${isFinder?'<span class="mi-you">← Your report</span>':''}
+        </div>
+      </div>
+      <div class="match-footer">${actions}</div>
+    </div>`;
+  }).join('');
+}
+
+function startVerify(matchId) {
+  AppState.activeMatchId = matchId;
+  $('verifyAnswer').value = '';
+  $('verifyError').style.display = 'none';
+  openModal('verifyModal');
+}
+
+async function submitVerify() {
+  const answer = ($('verifyAnswer').value||'').trim().toLowerCase();
+  if (!answer) return;
+  const matchId = AppState.activeMatchId;
+  if (!matchId) return;
+  setBusy('verifyBtn',true);
+  try {
+    const r = await api('POST',`/api/matches/${matchId}/verify`,{answer});
+    closeModal('verifyModal');
+    showToast(r.message||'Verified!','success');
+    loadPageMatches();
+  } catch(e) {
+    $('verifyError').textContent = e.message;
+    $('verifyError').style.display='';
+  } finally { setBusy('verifyBtn',false); }
+}
+
+function setChatMatch(matchId) {
+  sessionStorage.setItem('pendingChatMatch', matchId);
+}
+</script>
+{% endblock %}

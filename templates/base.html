@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}FindIt — Lost & Found{% endblock %}</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<!-- Animated Background Canvas -->
+<canvas id="bgCanvas"></canvas>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="loading-overlay">
+  <div class="loader-ring"><div></div><div></div><div></div><div></div></div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="toast"></div>
+
+<!-- ── HEADER ── -->
+<header class="header" id="mainHeader">
+  <nav class="nav-container">
+  <a href="/" class="logo">
+  <div class="logo-icon"><i class="fas fa-search-location"></i></div>
+  <span>FindIt</span>
+</a>
+
+    <div class="nav-links" id="navLinks">
+      <a href="/"             class="nav-link {% if page=='home' %}active{% endif %}">
+        <i class="fas fa-home"></i> Home
+      </a>
+      <a href="/browse"       class="nav-link {% if page=='browse' %}active{% endif %}">
+        <i class="fas fa-th-large"></i> Browse
+      </a>
+      <a href="/report-lost"  class="nav-link {% if page=='report-lost' %}active{% endif %}">
+        <i class="fas fa-exclamation-triangle"></i> Report Lost
+      </a>
+      <a href="/report-found" class="nav-link {% if page=='report-found' %}active{% endif %}">
+        <i class="fas fa-gift"></i> Report Found
+      </a>
+      <a href="/matches"      class="nav-link {% if page=='matches' %}active{% endif %}" id="navMatches">
+        <i class="fas fa-link"></i> Matches
+        <span class="nav-badge" id="matchNavBadge" style="display:none">0</span>
+      </a>
+      <a href="/chat"         class="nav-link {% if page=='chat' %}active{% endif %}">
+        <i class="fas fa-comments"></i> Chat
+      </a>
+
+      <!-- Guest buttons -->
+      <div id="guestNav" class="nav-auth">
+        <button class="btn btn-ghost-nav" onclick="openModal('otpModal')">
+          <i class="fas fa-mobile-alt"></i> Login with OTP
+        </button>
+        <button class="btn btn-primary-nav" onclick="openModal('loginModal')">
+          <i class="fas fa-sign-in-alt"></i> Sign In
+        </button>
+      </div>
+
+      <!-- User menu -->
+      <div id="userNav" style="display:none" class="nav-auth">
+        <div class="notif-wrapper" onclick="toggleNotifDropdown()">
+          <i class="fas fa-bell nav-icon-btn"></i>
+          <span class="notif-dot" id="notifDot" style="display:none"></span>
+        </div>
+        <div class="user-chip" onclick="toggleUserMenu()">
+          <div class="user-avatar" id="navAvatar">?</div>
+          <span id="navUserName">User</span>
+          <i class="fas fa-chevron-down caret"></i>
+        </div>
+        <div class="user-dropdown" id="userDropdown">
+          <a href="/profile"><i class="fas fa-user-circle"></i> My Profile</a>
+          <a href="/browse?mine=1"><i class="fas fa-list"></i> My Reports</a>
+          <a href="/matches"><i class="fas fa-link"></i> My Matches</a>
+          <a href="/chat"><i class="fas fa-comments"></i> Chat</a>
+          <div class="dropdown-divider"></div>
+          <a href="#" onclick="doLogout()" class="danger-link"><i class="fas fa-sign-out-alt"></i> Sign Out</a>
+        </div>
+
+        <!-- Notifications dropdown -->
+        <div class="notif-dropdown" id="notifDropdown">
+          <div class="notif-dd-hdr">
+            <span>Notifications</span>
+            <button onclick="markAllRead()">Mark all read</button>
+          </div>
+          <div id="notifList"><div class="notif-empty">No notifications</div></div>
+        </div>
+      </div>
+    </div>
+
+    <button class="hamburger" id="hamburger" onclick="toggleMobileMenu()">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+
+  <!-- Mobile nav drawer -->
+  <div class="mobile-drawer" id="mobileDrawer">
+    <div class="mobile-drawer-inner">
+      <a href="/"             onclick="closeMobileMenu()"><i class="fas fa-home"></i> Home</a>
+      <a href="/browse"       onclick="closeMobileMenu()"><i class="fas fa-th-large"></i> Browse</a>
+      <a href="/report-lost"  onclick="closeMobileMenu()"><i class="fas fa-exclamation-triangle"></i> Report Lost</a>
+      <a href="/report-found" onclick="closeMobileMenu()"><i class="fas fa-gift"></i> Report Found</a>
+      <a href="/matches"      onclick="closeMobileMenu()"><i class="fas fa-link"></i> Matches</a>
+      <a href="/chat"         onclick="closeMobileMenu()"><i class="fas fa-comments"></i> Chat</a>
+      <div class="mobile-auth" id="mobileGuestAuth">
+        <button class="btn btn-outline w-full" onclick="openModal('otpModal');closeMobileMenu()">
+          <i class="fas fa-mobile-alt"></i> Login with OTP
+        </button>
+        <button class="btn btn-primary w-full" onclick="openModal('loginModal');closeMobileMenu()">
+          <i class="fas fa-sign-in-alt"></i> Sign In
+        </button>
+      </div>
+      <div class="mobile-auth" id="mobileUserAuth" style="display:none">
+        <a href="/profile" onclick="closeMobileMenu()"><i class="fas fa-user"></i> Profile</a>
+        <button class="btn btn-danger w-full" onclick="doLogout()">
+          <i class="fas fa-sign-out-alt"></i> Sign Out
+        </button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ── PAGE CONTENT ── -->
+<main id="pageMain">
+  {% block content %}{% endblock %}
+</main>
+
+<!-- ── FOOTER ── -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <div class="footer-logo"><i class="fas fa-search-location"></i> FindIt</div>
+        <p>Helping people recover their lost belongings through a secure, verified platform.</p>
+        <div class="social-links">
+          <a href="#"><i class="fab fa-twitter"></i></a>
+          <a href="#"><i class="fab fa-facebook"></i></a>
+          <a href="#"><i class="fab fa-instagram"></i></a>
+          <a href="#"><i class="fab fa-linkedin"></i></a>
+        </div>
+      </div>
+      <div class="footer-col">
+        <h4>Quick Links</h4>
+        <ul>
+          <li><a href="/">Home</a></li>
+          <li><a href="/browse">Browse Items</a></li>
+          <li><a href="/report-lost">Report Lost</a></li>
+          <li><a href="/report-found">Report Found</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Contact</h4>
+        <ul class="contact-list">
+          <li><i class="fas fa-envelope"></i> support@findit.in</li>
+          <li><i class="fas fa-phone"></i> +91 7842418798</li>
+          <li><i class="fas fa-map-marker-alt"></i> Hyderabad, India</li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2026 FindIt. Built with ❤️ in India.</p>
+    </div>
+  </div>
+</footer>
+
+<!-- ══════════ MODALS ══════════ -->
+
+<!-- OTP Login Modal -->
+<div class="modal-backdrop" id="otpModal">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <h2><i class="fas fa-mobile-alt"></i> Login with OTP</h2>
+      <button class="modal-x" onclick="closeModal('otpModal')">&times;</button>
+    </div>
+    <!-- Step 1: Enter contact -->
+    <div id="otpStep1">
+      <p class="modal-sub">Enter your email or phone number to receive an OTP.</p>
+      <div id="otpError" class="form-error" style="display:none"></div>
+      <div class="form-group">
+        <label><i class="fas fa-at"></i> Email or Phone</label>
+        <input type="text" id="otpContact" placeholder="email@example.com or +91 98765..." onkeydown="if(event.key==='Enter')sendOTP()">
+      </div>
+      <button class="btn btn-primary w-full mt-sm" onclick="sendOTP()" id="sendOtpBtn">
+        <i class="fas fa-paper-plane"></i> Send OTP
+      </button>
+      <div class="modal-switch">
+        Already have a password? <a href="#" onclick="switchModal('otpModal','loginModal')">Sign in instead</a>
+      </div>
+    </div>
+    <!-- Step 2: Enter OTP -->
+    <div id="otpStep2" style="display:none">
+      <p class="modal-sub">Enter the 6-digit OTP sent to <strong id="otpMasked"></strong></p>
+      <div id="otpVerifyError" class="form-error" style="display:none"></div>
+      <div class="otp-inputs" id="otpInputs">
+        <input type="text" maxlength="1" class="otp-digit" oninput="otpDigitInput(this,0)" onkeydown="otpDigitKey(event,0)">
+        <input type="text" maxlength="1" class="otp-digit" oninput="otpDigitInput(this,1)" onkeydown="otpDigitKey(event,1)">
+        <input type="text" maxlength="1" class="otp-digit" oninput="otpDigitInput(this,2)" onkeydown="otpDigitKey(event,2)">
+        <input type="text" maxlength="1" class="otp-digit" oninput="otpDigitInput(this,3)" onkeydown="otpDigitKey(event,3)">
+        <input type="text" maxlength="1" class="otp-digit" oninput="otpDigitInput(this,4)" onkeydown="otpDigitKey(event,4)">
+        <input type="text" maxlength="1" class="otp-digit" oninput="otpDigitInput(this,5)" onkeydown="otpDigitKey(event,5)">
+      </div>
+      <div id="otpNameGroup" class="form-group" style="display:none;margin-top:1rem">
+        <label><i class="fas fa-user"></i> Your Name (first login)</label>
+        <input type="text" id="otpName" placeholder="Full name">
+      </div>
+      <button class="btn btn-primary w-full mt-sm" onclick="verifyOTP()" id="verifyOtpBtn">
+        <i class="fas fa-check"></i> Verify OTP
+      </button>
+      <div class="otp-resend">
+        Didn't receive it? <a href="#" onclick="sendOTP(true)">Resend OTP</a>
+        <span id="otpTimer" style="color:var(--muted)"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Password Login Modal -->
+<div class="modal-backdrop" id="loginModal">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <h2><i class="fas fa-sign-in-alt"></i> Sign In</h2>
+      <button class="modal-x" onclick="closeModal('loginModal')">&times;</button>
+    </div>
+    <div id="loginError" class="form-error" style="display:none"></div>
+    <div class="form-group">
+      <label><i class="fas fa-envelope"></i> Email</label>
+      <input type="email" id="loginEmail" placeholder="your@email.com">
+    </div>
+    <div class="form-group">
+      <label><i class="fas fa-lock"></i> Password</label>
+      <input type="password" id="loginPassword" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="btn btn-primary w-full mt-sm" onclick="doLogin()" id="loginBtn">
+      <i class="fas fa-sign-in-alt"></i> Sign In
+    </button>
+    <div class="modal-switch">
+      <p>New user? <a href="#" onclick="switchModal('loginModal','registerModal')">Create account</a></p>
+      <p style="margin-top:.5rem">
+        Prefer OTP? <a href="#" onclick="switchModal('loginModal','otpModal')">Login with OTP</a>
+      </p>
+      <p style="margin-top:.75rem;font-size:.8rem;color:var(--muted)">Demo: aarav@example.com / password123</p>
+    </div>
+  </div>
+</div>
+
+<!-- Register Modal -->
+<div class="modal-backdrop" id="registerModal">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <h2><i class="fas fa-user-plus"></i> Create Account</h2>
+      <button class="modal-x" onclick="closeModal('registerModal')">&times;</button>
+    </div>
+    <div id="registerError" class="form-error" style="display:none"></div>
+    <div class="form-group">
+      <label><i class="fas fa-user"></i> Full Name *</label>
+      <input type="text" id="regName" placeholder="Your full name">
+    </div>
+    <div class="form-group">
+      <label><i class="fas fa-envelope"></i> Email *</label>
+      <input type="email" id="regEmail" placeholder="your@email.com">
+    </div>
+    <div class="form-group">
+      <label><i class="fas fa-phone"></i> Phone</label>
+      <input type="tel" id="regPhone" placeholder="+91 98765 43210">
+    </div>
+    <div class="form-group">
+      <label><i class="fas fa-lock"></i> Password *</label>
+      <input type="password" id="regPassword" placeholder="Min. 8 characters">
+    </div>
+    <button class="btn btn-primary w-full mt-sm" onclick="doRegister()" id="registerBtn">
+      <i class="fas fa-user-plus"></i> Create Account
+    </button>
+    <div class="modal-switch">
+      Already have an account? <a href="#" onclick="switchModal('registerModal','loginModal')">Sign in</a>
+    </div>
+  </div>
+</div>
+
+<!-- Item Detail Modal -->
+<div class="modal-backdrop" id="itemModal">
+  <div class="modal-box modal-wide">
+    <div class="modal-hdr">
+      <h2 id="itemModalTitle"><i class="fas fa-info-circle"></i> Item Details</h2>
+      <button class="modal-x" onclick="closeModal('itemModal')">&times;</button>
+    </div>
+    <div id="itemModalBody"></div>
+  </div>
+</div>
+
+<!-- Verify Ownership Modal -->
+<div class="modal-backdrop" id="verifyModal">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <h2><i class="fas fa-fingerprint"></i> Verify Ownership</h2>
+      <button class="modal-x" onclick="closeModal('verifyModal')">&times;</button>
+    </div>
+    <p class="modal-sub">Provide the unique identifier (serial number, IMEI, receipt number, etc.) to prove ownership.</p>
+    <div id="verifyError" class="form-error" style="display:none"></div>
+    <div class="form-group">
+      <label><i class="fas fa-key"></i> Secret / Unique Identifier</label>
+      <input type="text" id="verifyAnswer" placeholder="e.g. IMEI: 354321..., Serial: DX13...">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('verifyModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitVerify()" id="verifyBtn">
+        <i class="fas fa-check"></i> Verify
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Claim Token Modal -->
+<div class="modal-backdrop" id="tokenModal">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <h2><i class="fas fa-key"></i> Save Your Claim Token</h2>
+      <button class="modal-x" onclick="closeModal('tokenModal')">&times;</button>
+    </div>
+    <div class="alert-warning">
+      <i class="fas fa-exclamation-triangle"></i>
+      Copy this token now — it will NOT be shown again!
+    </div>
+    <div class="token-box" id="tokenDisplay"></div>
+    <button class="btn btn-primary w-full" onclick="copyToken()">
+      <i class="fas fa-copy"></i> Copy to Clipboard
+    </button>
+  </div>
+</div>
+
+<script src="/static/js/app.js"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% set page = "profile" %}
+{% block title %}My Profile — FindIt{% endblock %}
+{% block content %}
+<div class="page-hero page-hero-blue">
+  <div class="container">
+    <h1><i class="fas fa-user-circle"></i> My Profile</h1>
+    <p>Manage your account and view your activity.</p>
+  </div>
+</div>
+<section class="form-section">
+  <div class="container">
+    <div class="auth-gate" id="profileAuthGate">
+      <div class="auth-gate-inner">
+        <i class="fas fa-user"></i><h3>Sign in to view your profile</h3>
+        <div class="auth-gate-btns">
+          <button class="btn btn-primary" onclick="openModal('otpModal')"><i class="fas fa-mobile-alt"></i> Login with OTP</button>
+          <button class="btn btn-outline"  onclick="openModal('loginModal')"><i class="fas fa-sign-in-alt"></i> Sign In</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="profileArea" style="display:none">
+      <div class="profile-grid">
+        <div class="profile-card">
+          <div class="profile-avatar" id="profAvatar">?</div>
+          <div class="profile-name" id="profName">—</div>
+          <div class="profile-email" id="profEmail">—</div>
+          <div class="profile-kyc" id="profKyc">—</div>
+        </div>
+
+        <div class="form-card">
+          <h3><i class="fas fa-edit"></i> Edit Profile</h3>
+          <div class="form-group">
+            <label>Full Name</label>
+            <input type="text" id="editName" placeholder="Your full name">
+          </div>
+          <div class="form-group">
+            <label>Phone</label>
+            <input type="tel" id="editPhone" placeholder="+91 98765 43210">
+          </div>
+          <button class="btn btn-primary" onclick="saveProfile()">
+            <i class="fas fa-save"></i> Save Changes
+          </button>
+        </div>
+
+        <div class="stats-card">
+          <h3><i class="fas fa-chart-bar"></i> Activity</h3>
+          <div class="profile-stats">
+            <div class="ps-item"><span class="ps-num" id="psReturned">0</span><span class="ps-lbl">Items Returned</span></div>
+            <div class="ps-item"><span class="ps-num" id="psFound">0</span><span class="ps-lbl">Items Found</span></div>
+            <div class="ps-item"><span class="ps-num c-green" id="psTrust">50%</span><span class="ps-lbl">Trust Score</span></div>
+          </div>
+        </div>
+      </div>
+
+      <h3 style="color:var(--dark);margin-bottom:1rem"><i class="fas fa-list"></i> My Reports</h3>
+      <div class="items-grid" id="myReportsGrid">
+        <div class="loading-state"><i class="fas fa-spinner fa-spin"></i><p>Loading…</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', ()=>{ if(AppState.user) showProfile(); });
+window._onAuthChange = ()=>{ if(AppState.user) showProfile(); };
+
+function showProfile() {
+  $('profileAuthGate').style.display = 'none';
+  $('profileArea').style.display     = '';
+  const u = AppState.user;
+  const initials = (u.full_name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  $('profAvatar').textContent = initials;
+  $('profName').textContent   = u.full_name || '—';
+  $('profEmail').textContent  = u.email || u.phone || '—';
+  $('profKyc').textContent    = '✓ ' + (u.kyc_status || 'pending');
+  $('psReturned').textContent = u.items_returned ?? 0;
+  $('psFound').textContent    = u.items_found    ?? 0;
+  $('psTrust').textContent    = (u.trust_score   ?? 50) + '%';
+  $('editName').value  = u.full_name || '';
+  $('editPhone').value = u.phone     || '';
+  loadMyReports();
+}
+
+async function loadMyReports() {
+  try {
+    const items = await api('GET','/api/reports');
+    const grid = $('myReportsGrid');
+    if (!items.length) {
+      grid.innerHTML = `<div class="empty-state"><i class="fas fa-box-open"></i><h3>No reports yet</h3>
+        <a href="/report-lost" class="btn btn-primary" style="margin-top:1rem">Report Lost Item</a></div>`;
+      return;
+    }
+    grid.innerHTML = items.map(item=>`
+      <div class="item-card ${item.report_type}">
+        <div class="ic-header">
+          <span class="ic-badge ${item.report_type}">${item.report_type}</span>
+          <span class="ic-status badge-${item.status}">${item.status}</span>
+        </div>
+        <div class="ic-body">
+          <div class="ic-title">${esc(item.title)}</div>
+          <div class="ic-meta"><i class="fas fa-tag"></i> ${esc(item.category_name||item.category)}</div>
+          ${item.location_label?`<div class="ic-meta"><i class="fas fa-map-marker-alt"></i> ${esc(item.location_label)}</div>`:''}
+          <div class="ic-meta"><i class="fas fa-clock"></i> ${timeAgo(item.created_at)}</div>
+        </div>
+        <div class="ic-footer">
+          <button class="btn btn-ghost btn-sm" onclick="removeReport('${item.id}')">
+            <i class="fas fa-trash"></i> Remove
+          </button>
+        </div>
+      </div>`).join('');
+  } catch(e) { showToast(e.message,'error'); }
+}
+
+async function saveProfile() {
+  const full_name = ($('editName').value||'').trim();
+  const phone     = ($('editPhone').value||'').trim();
+  if (!full_name) return showToast('Name cannot be empty','error');
+  try {
+    const u = await api('PATCH','/api/users/me',{full_name, phone});
+    AppState.user = {...AppState.user, ...u};
+    showProfile();
+    updateNavUser();
+    showToast('Profile updated!','success');
+  } catch(e) { showToast(e.message,'error'); }
+}
+
+async function removeReport(id) {
+  if (!confirm('Mark this report as removed?')) return;
+  try {
+    await api('PATCH',`/api/reports/${id}/status`,{status:'removed'});
+    showToast('Report removed.','success');
+    loadMyReports();
+  } catch(e) { showToast(e.message,'error'); }
+}
+</script>
+{% endblock %}

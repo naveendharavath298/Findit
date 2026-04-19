@@ -1,0 +1,222 @@
+{
+  "users": [
+    {
+      "id": "e2ae13e7-7d2e-4da0-8924-4b10eb290c3a",
+      "full_name": "Aarav Sharma",
+      "email": "aarav@example.com",
+      "phone": "+91 98765 43210",
+      "otp_verified": true,
+      "password_hash": "$2b$10$h43.fv1w6EFniaXcgTCWtOBpv1Utu5QqW3286tPpVs425RvZvWBzG",
+      "kyc_status": "verified",
+      "trust_score": 88.0,
+      "items_returned": 3,
+      "items_found": 5,
+      "is_banned": false,
+      "created_at": "2026-04-19T07:36:56.697534+00:00"
+    },
+    {
+      "id": "d8e22efe-c739-4893-8881-5e9afaac949d",
+      "full_name": "Priya Nair",
+      "email": "priya@example.com",
+      "phone": "+91 87654 32109",
+      "otp_verified": true,
+      "password_hash": "$2b$10$SAcj38MPq4v6zRyh.rWF4Oyu7aDp0G.ro0hWmI9M2l2etmZ6ZPHLG",
+      "kyc_status": "verified",
+      "trust_score": 88.0,
+      "items_returned": 3,
+      "items_found": 5,
+      "is_banned": false,
+      "created_at": "2026-04-19T07:36:56.834125+00:00"
+    },
+    {
+      "id": "d2d79287-404e-413c-8036-4ef6c7652cd6",
+      "full_name": "Nallamothu Arun Kumar",
+      "email": "arunnallamothu827@gmail.com",
+      "phone": "9553212391",
+      "password_hash": "$2b$10$eu4sW7305Mrpjgv5lBQgqOk7ccxXn0qPuQwZx9AAmLQYn36ADM2Oy",
+      "otp_verified": false,
+      "kyc_status": "pending",
+      "trust_score": 50.0,
+      "items_returned": 0,
+      "items_found": 0,
+      "is_banned": false,
+      "created_at": "2026-04-19T07:38:22.855753+00:00"
+    }
+  ],
+  "sessions": [
+    {
+      "user_id": "d2d79287-404e-413c-8036-4ef6c7652cd6",
+      "jti": "17b3f797-0961-48b0-b266-c3c8668d7634",
+      "expires_at": "2026-04-26T07:38:28.365345+00:00",
+      "revoked": true,
+      "created_at": "2026-04-19T07:38:28.367523+00:00"
+    },
+    {
+      "user_id": "d2d79287-404e-413c-8036-4ef6c7652cd6",
+      "jti": "ed756b7c-cd3f-416e-a241-09498ff7351e",
+      "expires_at": "2026-04-26T07:40:06.017175+00:00",
+      "revoked": true,
+      "created_at": "2026-04-19T07:40:06.017484+00:00"
+    },
+    {
+      "user_id": "d2d79287-404e-413c-8036-4ef6c7652cd6",
+      "jti": "64c3e79b-4c75-4a4b-9d98-6581be7522f0",
+      "expires_at": "2026-04-26T07:41:34.642103+00:00",
+      "revoked": true,
+      "created_at": "2026-04-19T07:41:34.642383+00:00"
+    },
+    {
+      "user_id": "d2d79287-404e-413c-8036-4ef6c7652cd6",
+      "jti": "bde2e0bd-f70f-4675-9896-42735df90306",
+      "expires_at": "2026-04-26T07:50:30.094265+00:00",
+      "revoked": false,
+      "created_at": "2026-04-19T07:50:30.094705+00:00"
+    }
+  ],
+  "items": [
+    {
+      "id": "d56bbedb-a4b3-4094-af09-ccc9524f3880",
+      "user_id": "e2ae13e7-7d2e-4da0-8924-4b10eb290c3a",
+      "report_type": "lost",
+      "title": "iPhone 13 Pro",
+      "category": "electronics",
+      "description": "Blue iPhone 13 Pro, clear case, scratch on bottom right. IMEI: 354321098765432.",
+      "unique_identifiers": "IMEI: 354321098765432",
+      "location_label": "Central Park, New Delhi",
+      "event_time": "2024-01-15",
+      "status": "active",
+      "is_high_value": true,
+      "reward": "\u20b95,000",
+      "created_at": "2024-01-15T10:30:00"
+    },
+    {
+      "id": "f7e24d45-c452-40d5-bdf5-43c30b1f8b5b",
+      "user_id": "d8e22efe-c739-4893-8881-5e9afaac949d",
+      "report_type": "found",
+      "title": "Brown Leather Wallet",
+      "category": "accessories",
+      "description": "Brown leather wallet found near counter. Contains cards but no cash.",
+      "unique_identifiers": "",
+      "location_label": "Starbucks, MG Road, Bengaluru",
+      "event_time": "2024-01-16",
+      "status": "active",
+      "is_high_value": false,
+      "reward": "",
+      "created_at": "2024-01-16T14:20:00"
+    },
+    {
+      "id": "682f03b5-6275-4831-90ea-c4c03f1fcd25",
+      "user_id": "e2ae13e7-7d2e-4da0-8924-4b10eb290c3a",
+      "report_type": "lost",
+      "title": "Dell XPS 13 Laptop",
+      "category": "electronics",
+      "description": "Silver Dell XPS 13, black sleeve, university sticker on back. Serial: DX13-987654.",
+      "unique_identifiers": "Serial: DX13-987654",
+      "location_label": "IIT Delhi Library",
+      "event_time": "2024-01-14",
+      "status": "active",
+      "is_high_value": true,
+      "reward": "\u20b910,000",
+      "created_at": "2024-01-14T09:15:00"
+    },
+    {
+      "id": "764229fd-7390-4600-b0fd-86201e6f6854",
+      "user_id": "d8e22efe-c739-4893-8881-5e9afaac949d",
+      "report_type": "found",
+      "title": "Car Keys with Red Keychain",
+      "category": "accessories",
+      "description": "Toyota key fob with distinctive red keychain. Found near parking section B.",
+      "unique_identifiers": "",
+      "location_label": "Ambience Mall, Gurgaon",
+      "event_time": "2024-01-17",
+      "status": "active",
+      "is_high_value": false,
+      "reward": "",
+      "created_at": "2024-01-17T16:45:00"
+    },
+    {
+      "id": "8322c4f8-f07a-4bc5-94b0-067802b29d05",
+      "user_id": "e2ae13e7-7d2e-4da0-8924-4b10eb290c3a",
+      "report_type": "lost",
+      "title": "Gold Necklace with Pendant",
+      "category": "jewelry",
+      "description": "18k gold necklace, small diamond pendant. Bought from Tanishq. Receipt no. 2023-456.",
+      "unique_identifiers": "Tanishq receipt no. 2023-456",
+      "location_label": "Riverside Restaurant, Mumbai",
+      "event_time": "2024-01-13",
+      "status": "active",
+      "is_high_value": true,
+      "reward": "\u20b915,000",
+      "created_at": "2024-01-13T20:00:00"
+    },
+    {
+      "id": "a0c90bb6-8165-4911-9143-c91ed265daa6",
+      "user_id": "d8e22efe-c739-4893-8881-5e9afaac949d",
+      "report_type": "found",
+      "title": "Aadhaar Card",
+      "category": "documents",
+      "description": "Aadhaar card found at metro station. Last 4 digits: xxxx 5678.",
+      "unique_identifiers": "",
+      "location_label": "Rajiv Chowk Metro, Delhi",
+      "event_time": "2024-01-18",
+      "status": "active",
+      "is_high_value": false,
+      "reward": "",
+      "created_at": "2024-01-18T08:30:00"
+    }
+  ],
+  "matches": [],
+  "messages": [],
+  "notifications": [],
+  "otps": [
+    {
+      "id": "d0645163-62b0-409a-a508-7dc58f3b9ed8",
+      "contact": "6281532040",
+      "otp": "549624",
+      "purpose": "login",
+      "expires_at": "2026-04-19T07:47:51.193784+00:00",
+      "used": false
+    },
+    {
+      "id": "35b054a6-a2c9-4f4f-bd3c-35c5962cc184",
+      "contact": "arunnallamothu827@gmail.com",
+      "otp": "908431",
+      "purpose": "login",
+      "expires_at": "2026-04-19T07:49:29.609305+00:00",
+      "used": false
+    }
+  ],
+  "categories": [
+    {
+      "id": "electronics",
+      "name": "Electronics",
+      "icon": "fa-laptop"
+    },
+    {
+      "id": "documents",
+      "name": "Documents & IDs",
+      "icon": "fa-id-card"
+    },
+    {
+      "id": "accessories",
+      "name": "Accessories",
+      "icon": "fa-key"
+    },
+    {
+      "id": "clothing",
+      "name": "Clothing",
+      "icon": "fa-tshirt"
+    },
+    {
+      "id": "jewelry",
+      "name": "Jewelry",
+      "icon": "fa-gem"
+    },
+    {
+      "id": "other",
+      "name": "Other",
+      "icon": "fa-box"
+    }
+  ],
+  "seed_done": true
+}
